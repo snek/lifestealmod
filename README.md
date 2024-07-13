@@ -61,4 +61,4 @@ This mod is licensed under the MIT License. For more details, please refer to th
 
 ---
 
-Thank you for choosing the Lifesteal Mod! Enjoy the added challenge and excitement it brings to your Minecraft experience. If you encounter any issues or have feedback, feel free to reach out via the mod's [support page](#) or GitHub repository.
+Thank you for choosing the Lifesteal Mod!
