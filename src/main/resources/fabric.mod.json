@@ -3,14 +3,14 @@
 	"id": "lifestealmod",
 	"version": "${version}",
 	"name": "LifestealMod",
-	"description": "Add a new twist to your Minecraft game with the Lifesteal Fabric Mod! This mod lets you steal hearts from other players by killing them, you lose a heart when you die. Perfect for both single-player and multiplayer.",
+	"description": "This Lifesteal mod is inspired by the Lifesteal SMP. In this mod, if you kill a player, you steal one of their hearts, and if you die, you lose one. Just like the Lifesteal SMP except for one change, if you lose all of your hearts, you enter spectator mode instead of getting banned. You can be revived if you lose all of your hearts.",
 	"authors": [
 		"PhantomZ3",
 		"Drypted"
 	],
 	"contact": {
-		"homepage": "https://github.com/obscure021/lifestealmod",
-		"sources": "https://github.com/obscure021/lifestealmod"
+		"homepage": "https://github.com/sdphantomz3/LifestealMod",
+		"sources": "https://github.com/sdphantomz3/LifestealMod"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/lifestealmod/icon.png",
