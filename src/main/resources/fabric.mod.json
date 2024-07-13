@@ -1,0 +1,45 @@
+{
+	"schemaVersion": 1,
+	"id": "lifestealmod",
+	"version": "${version}",
+	"name": "LifestealMod",
+	"description": "Add a new twist to your Minecraft game with the Lifesteal Fabric Mod! This mod lets you steal hearts from other players by killing them, you lose a heart when you die. Perfect for both single-player and multiplayer.",
+	"authors": [
+		"PhantomZ3",
+		"Drypted"
+	],
+	"contact": {
+		"homepage": "https://github.com/obscure021/lifestealmod",
+		"sources": "https://github.com/obscure021/lifestealmod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/lifestealmod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.phantomz3.LifestealMod"
+		],
+		"client": [
+			"com.phantomz3.LifestealModClient"
+		],
+		"fabric-datagen": [
+			"com.phantomz3.LifestealModDataGenerator"
+		]
+	},
+	"mixins": [
+		"lifestealmod.mixins.json",
+		{
+			"config": "lifestealmod.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.15.11",
+		"minecraft": "~1.21",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
