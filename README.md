@@ -2,7 +2,8 @@
 
 ## Overview
 
-This Lifesteal mod is inspired by the Lifesteal SMP. In this mod, if you kill a player, you steal one of their hearts, and if you die, you lose one. Just like the Lifesteal SMP except for one change, if you lose all of your hearts, you enter **spectator mode** instead of getting banned. You can be revived if you lose all of your hearts.
+This Lifesteal mod is inspired by the Lifesteal SMP. In this mod, if you kill a player, you steal one of their hearts, and if you die, you lose one. Just like the Lifesteal SMP except for one change: if you lose all of your hearts, you enter **spectator mode** instead of getting banned. You can be revived if you lose all of your hearts.
+
 ## Features
 - **Heart Stealing:** When a player kills another player, they steal one heart from the defeated player.
 - **Heart Loss on Death:** Players lose a heart every time they die.
@@ -11,9 +12,13 @@ This Lifesteal mod is inspired by the Lifesteal SMP. In this mod, if you kill a 
 - **Revival Hearts:** Revived players come back to life with 4 hearts.
 - **Heart Withdrawal:** Players can withdraw hearts using the `/withdraw [number]` command, allowing for strategic heart management.
 
+## Configuration
+
+The mod's configuration can be changed in the `fabric/config` folder. Currently, you can change the maximum heart cap.
+
 ## Commands
 
-- **/revive [player_name]:** Revives the specified player if the reviver has 4 netherite ingots and 4 hearts.
+- **/revive [player_name]:** Revives the specified player if the reviver has 4 netherite ingots and 4 hearts in their **inventory**.
 - **/withdraw [number]:** Withdraws the specified number of hearts from your total hearts.
 
 ## How to Install
