@@ -12,9 +12,12 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+
+import com.phantomz3.ModConfig;
+
+import me.shedaniel.autoconfig.AutoConfig;
 
 public class HeartItem extends Item {
     public HeartItem(Settings settings) {
@@ -29,8 +32,10 @@ public class HeartItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
         ItemStack itemStack = player.getStackInHand(hand);
+        // config
+        ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
         double maxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
-        double healthCap = 40.0;  // 20 hearts
+        double healthCap = config.maxHeartCap;
 
         if (!world.isClient) {
             if (maxHealth < healthCap) {

@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.passive.CowEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -23,12 +22,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.world.World;
-
-import com.mojang.brigadier.arguments.StringArgumentType;
-import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.item.Items;
-
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 
 public class LifestealMod implements ModInitializer {
 	public static final String MOD_ID = "lifestealmod";
@@ -39,9 +35,14 @@ public class LifestealMod implements ModInitializer {
 		LOGGER.info("Hello Fabric world!");
 		ModItems.initialize();
 
+		registerConfig();
 		registerEvents();
 		registerCommands();    
 		registerReviveCommand();
+	}
+
+	private void registerConfig() {
+		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
 	}
 
 	private void registerEvents() {
@@ -51,18 +52,13 @@ public class LifestealMod implements ModInitializer {
 				PlayerEntity player = (PlayerEntity) entity;
 
 				// Drop a heart item on death
-				ItemStack heartStack = new ItemStack(ModItems.HEART);
-				player.dropItem(heartStack, true);
+				if(source.getAttacker() instanceof PlayerEntity) {
+					ItemStack heartStack = new ItemStack(ModItems.HEART);
+					player.dropItem(heartStack, true);
+				}
 
 				// Decrease the player's max health
 				double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
-				// if (playerMaxHealth > 10.0) { // Ensure player has more than default health
-				// 	player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
-				// 			.setBaseValue(playerMaxHealth - 2.0);
-
-				// 	// Send a message to the player's action bar
-				// 	player.sendMessage(Text.translatable("message.lifestealmod.lost_health").formatted(Formatting.RED), true);
-				// }
 				// Send a message to the player's action bar
 				player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
 				 			.setBaseValue(playerMaxHealth - 2.0);
@@ -75,6 +71,10 @@ public class LifestealMod implements ModInitializer {
 				if (playerMaxHealth <= 1.0) {
 					((ServerPlayerEntity) player).changeGameMode(GameMode.SPECTATOR);
 					player.sendMessage(Text.translatable("message.lifestealmod.spectator_mode").formatted(Formatting.GRAY), true);
+
+					player.setHealth(1.0f);
+					// Return false to prevent the player from dying
+					return false;
 				}
 			}
 
@@ -85,36 +85,39 @@ public class LifestealMod implements ModInitializer {
 		ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register((world, entity, killed) -> {
 			if (entity instanceof PlayerEntity) {
 				PlayerEntity player = (PlayerEntity) entity;
-
-				// Gain a heart if player kills another player
+				ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+		
 				if (killed instanceof PlayerEntity) {
-					// if player already has 20 hearts, give them heart item
-					if (player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH) >= 40.0) {
+					// if player already has max hearts, give them heart item
+					if (player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH) >= config.maxHeartCap) {
 						ItemStack heartStack = new ItemStack(ModItems.HEART);
 						player.dropItem(heartStack, true);
 						return;
 					}
-
+		
 					increasePlayerHealth(player);
 					player.sendMessage(Text.translatable("message.lifestealmod.gained_health").formatted(Formatting.GRAY), true);
 				}
+				
 			}
 		});
+		
 	}
 
 	private void increasePlayerHealth(PlayerEntity player) {
+		ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
 		double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
-		if (playerMaxHealth < 40.0) { // Ensure player's max health does not exceed 40 (20 hearts)
+		if (playerMaxHealth < config.maxHeartCap) { // Use the configured max heart cap
 			player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
-					.setBaseValue(MathHelper.clamp(playerMaxHealth + 2.0, 0.0, 40.0));
+					.setBaseValue(MathHelper.clamp(playerMaxHealth + 2.0, 0.0, config.maxHeartCap));
 		}
 	}
-
+	
 	// creating a /withdraw command: /withdraw <amount> and it should remove the amount from the player's inventory and give them heart items
 	private void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
 			dispatcher.register(CommandManager.literal("withdraw")
-					.requires(source -> source.hasPermissionLevel(2))
+					.requires(source -> source.hasPermissionLevel(0))
 					.then(CommandManager.argument("amount", IntegerArgumentType.integer(1))
 							.executes(context -> {
 								ServerCommandSource source = context.getSource();
@@ -164,7 +167,7 @@ public class LifestealMod implements ModInitializer {
 	private void registerReviveCommand() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
 			dispatcher.register(CommandManager.literal("revive")
-					.requires(source -> source.hasPermissionLevel(2))
+					.requires(source -> source.hasPermissionLevel(0))
 					.then(CommandManager.argument("player", EntityArgumentType.player())
 							.executes(context -> {
 								ServerCommandSource source = context.getSource();
@@ -173,14 +176,22 @@ public class LifestealMod implements ModInitializer {
 	
 								double executingPlayerMaxHealth = executingPlayer.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
 								ItemStack netheriteIngotStack = new ItemStack(Items.NETHERITE_INGOT, 4);
+
+								// cannot revive himself or players with above 1 heart
+								if (executingPlayer == targetPlayer || targetPlayer.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH) > 1.0) {
+									executingPlayer.sendMessage(Text.translatable("message.lifestealmod.cannot_revive").formatted(Formatting.RED), true);
+									return Command.SINGLE_SUCCESS;
+								}
 	
-								if (executingPlayerMaxHealth >= 9.0 && executingPlayer.getInventory().count(Items.NETHERITE_INGOT) >= 4) {
-									// Deduct 4 hearts from the executing player
-									executingPlayer.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
-											.setBaseValue(executingPlayerMaxHealth - 8.0);
+								if (executingPlayer.getInventory().count(ModItems.HEART) >= 4 && executingPlayer.getInventory().count(Items.NETHERITE_INGOT) >= 4) {
+									// Remove 4 heart items from the executing player's inventory
+									executingPlayer.getInventory().removeStack(executingPlayer.getInventory().getSlotWithStack(new ItemStack(ModItems.HEART)), 4);
 	
 									// Remove 4 netherite ingots from the executing player's inventory
 									executingPlayer.getInventory().removeStack(executingPlayer.getInventory().getSlotWithStack(netheriteIngotStack), 4);
+
+									// Remove 4 heart items from the e
+									executingPlayer.getInventory().removeStack(targetPlayer.getInventory().getSlotWithStack(new ItemStack(ModItems.HEART)), 4);
 	
 									// Revive the target player
 									targetPlayer.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(8.0);

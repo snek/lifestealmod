@@ -10,5 +10,6 @@
   "message.lifestealmod.zero_heart_players": "Players with 0 hearts:",
   "message.lifestealmod.revive_instructions": "Use /revive <player> to revive a player.",
   "message.lifestealmod.revive_success": "Player revived successfully!",
-  "message.lifestealmod.revive_fail": "You need 4 hearts and 4 netherite ingots to revive a player."
+  "message.lifestealmod.revive_fail": "You need 4 hearts and 4 netherite ingots to revive a player.",
+  "message.lifestealmod.cannot_revive": "You cannot revive this player!"
 }
