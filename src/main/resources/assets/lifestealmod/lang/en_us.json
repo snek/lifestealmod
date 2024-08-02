@@ -1,7 +1,7 @@
 {
   "item.lifestealmod.heart": "Heart",
-  "item.lifestealmod.heart.tooltip": "Right click to radeem the heart.",
-  "message.lifestealmod.max_health_reached": "You have reached the maximum health limit!",
+  "item.lifestealmod.heart.tooltip": "Right click to redeem the heart.",
+  "message.lifestealmod.max_health": "You have reached the maximum health limit!",
   "message.lifestealmod.gained_health": "You gained an additional heart!",
   "message.lifestealmod.lost_health": "You lost a heart!",
   "message.lifestealmod.spectator_mode": "You lost all your hearts! You are now in spectator mode!",

@@ -1,5 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
+  "group": "stuff",
   "pattern": [
     "#n#",
     "nNn",
@@ -17,8 +18,11 @@
     }
   },
   "result": {
-    "id": "lifestealmod:heart",
-    "count": 1
-  },
-  "group": "stuff"
+    "id": "minecraft:nether_star",
+    "count": 1,
+    "components": {
+      "minecraft:custom_name": "Heart",
+      "minecraft:enchantment_glint_override": false
+    }
+  }
 }

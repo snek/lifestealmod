@@ -3,7 +3,7 @@
 	"id": "lifestealmod",
 	"version": "${version}",
 	"name": "LifestealMod",
-	"description": "This Lifesteal mod is inspired by the Lifesteal SMP. In this mod, if you kill a player, you steal one of their hearts, and if you die, you lose one. Just like the Lifesteal SMP except for one change, if you lose all of your hearts, you enter spectator mode instead of getting banned. You can be revived if you lose all of your hearts.",
+	"description": "A Lifesteal mod identical to the orignal Lifesteal SMP.",
 	"authors": [
 		"PhantomZ3",
 		"Drypted"
