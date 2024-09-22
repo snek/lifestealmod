@@ -686,7 +686,7 @@ public class LifestealMod implements ModInitializer {
 			// Fill the remaining slots with gray glass panes to indicate empty spaces
 			for (int i = 0; i < inventory.size(); i++) {
 				if (inventory.getStack(i).isEmpty()) {
-					ItemStack glassPane = new ItemStack(Items.GRAY_STAINED_GLASS_PANE);
+					ItemStack glassPane = new ItemStack(Items.WHITE_STAINED_GLASS_PANE);
 					glassPane.set(DataComponentTypes.ITEM_NAME, Text.literal("Empty"));
 					inventory.setStack(i, glassPane);
 				}
