@@ -1,6 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
-  "group": "stuff",
+  "category": "misc",
   "pattern": [
     "#n#",
     "nNn",
@@ -21,7 +21,7 @@
     "id": "minecraft:nether_star",
     "count": 1,
     "components": {
-      "minecraft:custom_name": "Heart",
+      "minecraft:item_name": "Heart",
       "minecraft:enchantment_glint_override": false
     }
   }
