@@ -77,6 +77,12 @@ public class LifestealMod implements ModInitializer {
 				LivingEntity attacker = (LivingEntity) source.getAttacker();
 				ModConfig config = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
 
+				// do not continue if player has a totem equipped
+				if (player.getMainHandStack().getItem() == Items.TOTEM_OF_UNDYING 
+				    || player.getOffHandStack().getItem() == Items.TOTEM_OF_UNDYING) {
+					return true;
+				}
+
 				// killed by player
 				if (attacker instanceof PlayerEntity) {
 					PlayerEntity playerAttacker = (PlayerEntity) attacker;
