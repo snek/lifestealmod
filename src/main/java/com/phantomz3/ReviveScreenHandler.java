@@ -73,10 +73,10 @@ public class ReviveScreenHandler extends GenericContainerScreenHandler {
             return 0;
         }
 
-        double currentMaxHealth = target.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+        double currentMaxHealth = target.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
         double newMaxHealth = Math.max(2.0, currentMaxHealth + 8.0); // 20 hearts = 40 health
 
-        target.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(newMaxHealth);
+        target.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(newMaxHealth);
         target.setHealth((float) newMaxHealth); // Set player's health to the new max health
 
         // changing the player's gamemode to survival

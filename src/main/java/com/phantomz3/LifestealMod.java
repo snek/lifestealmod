@@ -35,10 +35,10 @@ import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
 
@@ -81,7 +81,7 @@ public class LifestealMod implements ModInitializer {
 					PlayerEntity playerAttacker = (PlayerEntity) attacker;
 
 					// attacker has less than 'maxHeartCap' health
-					if (attacker.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH) < config.maxHeartCap) {
+					if (attacker.getAttributeBaseValue(EntityAttributes.MAX_HEALTH) < config.maxHeartCap) {
 						// give one heart to the attacker
 						increasePlayerHealth(playerAttacker);
 						playerAttacker.sendMessage(
@@ -98,15 +98,16 @@ public class LifestealMod implements ModInitializer {
 				}
 
 				// decrease the player's max health
-				double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
-				player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(playerMaxHealth - 2.0);
+				double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
+				player.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(playerMaxHealth - 2.0);
 				player.sendMessage(Text.literal("You lost a heart!").formatted(Formatting.RED),
 						true);
 
 				// update the player max health after decreasing it
-				playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+				playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 
 				if (playerMaxHealth <= 1.0) {
+					ServerWorld serverWorld = (ServerWorld) player.getWorld();
 					((ServerPlayerEntity) player).changeGameMode(GameMode.SPECTATOR);
 					player.sendMessage(
 							Text.literal("You lost all your hearts! You are now in spectator mode!")
@@ -115,7 +116,7 @@ public class LifestealMod implements ModInitializer {
 
 					player.setHealth(1.0f);
 
-					if (!player.getWorld().getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
+					if (!serverWorld.getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
 						player.getInventory().dropAll();
 					}
 
@@ -154,7 +155,7 @@ public class LifestealMod implements ModInitializer {
 		if (config.disableCPVP) {
 			AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
 				if (entity.getType() == EntityType.END_CRYSTAL) {
-					entity.kill();
+					// entity.kill();
 					player.sendMessage(
 							Text.literal("Crystals are disabled on this server!").formatted(Formatting.RED), true);
 					return ActionResult.SUCCESS;
@@ -181,9 +182,9 @@ public class LifestealMod implements ModInitializer {
 					player.sendMessage(
 							Text.literal("Ender pearls are disabled on this server!").formatted(Formatting.RED),
 							true);
-					return TypedActionResult.fail(player.getStackInHand(hand));
+					return ActionResult.FAIL; // Prevent usage
 				}
-				return TypedActionResult.pass(player.getStackInHand(hand));
+				return ActionResult.PASS; // Allow other items to proceed
 			});
 		}
 
@@ -256,21 +257,21 @@ public class LifestealMod implements ModInitializer {
 		if (config.riptideCooldownEnabled) {
 			UseItemCallback.EVENT.register((player, world, hand) -> {
 				if (world.isClient) {
-					return TypedActionResult.pass(player.getStackInHand(hand));
+					return ActionResult.PASS; // Client-side, pass through
 				}
 
 				ItemStack itemStack = player.getStackInHand(hand);
 
 				if (itemStack.getItem() == Items.TRIDENT && player.isUsingRiptide()) {
-					if (player.getItemCooldownManager().isCoolingDown(Items.TRIDENT)) {
-						return TypedActionResult.fail(itemStack);
+					if (player.getItemCooldownManager().isCoolingDown(itemStack)) {
+						return ActionResult.FAIL; // Cooldown active, prevent usage
 					} else {
-						player.getItemCooldownManager().set(Items.TRIDENT, config.riptideCooldown);
-						return TypedActionResult.success(itemStack);
+						player.getItemCooldownManager().set(itemStack, config.riptideCooldown);
+						return ActionResult.SUCCESS; // Apply cooldown and allow usage
 					}
 				}
 
-				return TypedActionResult.pass(itemStack);
+				return ActionResult.PASS; // Other items pass through
 			});
 		}
 
@@ -280,32 +281,29 @@ public class LifestealMod implements ModInitializer {
 
 			if (itemStack.getItem() == Items.NETHER_STAR && !(itemStack.hasGlint())
 					&& itemStack.getName().getString().equals("Heart")) {
-
 				if (player instanceof ServerPlayerEntity) {
-					// health cap
 					ModConfig modConfig = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
-					double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+					double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 					if (playerMaxHealth >= modConfig.maxHeartCap) {
 						player.sendMessage(
 								Text.literal("You have reached the maximum health limit!").formatted(Formatting.RED),
 								true);
-						return TypedActionResult.fail(itemStack);
+						return ActionResult.FAIL; // Max health reached, prevent usage
 					}
 
-					player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
+					player.getAttributeInstance(EntityAttributes.MAX_HEALTH)
 							.setBaseValue(playerMaxHealth + 2.0);
 
 					player.sendMessage(
 							Text.literal("You gained an additional heart!").formatted(Formatting.GREEN), true);
 
-					// Decrease the item stack size
-					itemStack.decrement(1);
+					itemStack.decrement(1); // Consume the heart
 
-					return TypedActionResult.success(itemStack);
+					return ActionResult.SUCCESS; // Successfully used the heart
 				}
 			}
 
-			return TypedActionResult.pass(itemStack);
+			return ActionResult.PASS; // Other items pass through
 
 		});
 
@@ -353,11 +351,11 @@ public class LifestealMod implements ModInitializer {
 									inventory),
 							Text.of("Revive Players")));
 
-					return TypedActionResult.success(itemStack);
+					return ActionResult.SUCCESS;
 				}
 			}
 
-			return TypedActionResult.pass(itemStack);
+			return ActionResult.PASS;
 		});
 
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
@@ -375,14 +373,14 @@ public class LifestealMod implements ModInitializer {
 		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
 			if (entity instanceof PlayerEntity) {
 				PlayerEntity player = (PlayerEntity) entity;
-				double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+				double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 				ModConfig modConfig = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
 
 				if (playerMaxHealth > modConfig.maxHeartCap) {
 					player.sendMessage(
 							Text.literal("You have reached the maximum health limit!").formatted(Formatting.RED),
 							true);
-					player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
+					player.getAttributeInstance(EntityAttributes.MAX_HEALTH)
 							.setBaseValue(modConfig.maxHeartCap);
 				}
 			}
@@ -411,8 +409,8 @@ public class LifestealMod implements ModInitializer {
 	}
 
 	private void increasePlayerHealth(PlayerEntity player) {
-		double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
-		player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(playerMaxHealth + 2.0);
+		double playerMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
+		player.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(playerMaxHealth + 2.0);
 	}
 
 	private void registerCommands() {
@@ -426,9 +424,9 @@ public class LifestealMod implements ModInitializer {
 										int amount = IntegerArgumentType.getInteger(context, "amount");
 
 										double playerMaxHealth = player
-												.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+												.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 
-										// if he tries to withdraw allof his health, don't let him
+										// if he tries to withdraw all of his health, don't let him
 										if (amount >= playerMaxHealth / 2.0) {
 											player.sendMessage(Text.literal("Withdrawing heart failed!")
 													.formatted(Formatting.RED), true);
@@ -441,7 +439,7 @@ public class LifestealMod implements ModInitializer {
 											double playerCurrentHealth = player.getHealth();
 
 											// sets the current health too
-											player.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
+											player.getAttributeInstance(EntityAttributes.MAX_HEALTH)
 													.setBaseValue(newMaxHealth);
 
 											// restoring current health if it is less than the new max health and if enabled in config
@@ -480,11 +478,11 @@ public class LifestealMod implements ModInitializer {
 	
 													for (ServerPlayerEntity target : targets) {
 														double currentMaxHealth = target
-																.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+																.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 														double newMaxHealth = Math.max(2.0,
 																currentMaxHealth - amount * 2.0); // 1 heart = 2.0 health
 	
-														target.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
+														target.getAttributeInstance(EntityAttributes.MAX_HEALTH)
 																.setBaseValue(newMaxHealth);
 														target.setHealth((float) newMaxHealth); // Set player's health to
 																								// the new max health
@@ -503,10 +501,10 @@ public class LifestealMod implements ModInitializer {
 	
 													for (ServerPlayerEntity target : targets) {
 														double currentMaxHealth = target
-																.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+																.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 														double newMaxHealth = Math.max(2.0, amount * 2.0); // 1 heart = 2.0 health
 	
-														target.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
+														target.getAttributeInstance(EntityAttributes.MAX_HEALTH)
 																.setBaseValue(newMaxHealth);
 														target.setHealth((float) newMaxHealth); // Set player's health to
 																								// the new max health
@@ -525,11 +523,11 @@ public class LifestealMod implements ModInitializer {
 
 												for (ServerPlayerEntity target : targets) {
 													double currentMaxHealth = target
-															.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+															.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 													double newMaxHealth = Math.max(2.0,
 															currentMaxHealth + amount * 2.0); // 1 heart = 2.0 health
 
-													target.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)
+													target.getAttributeInstance(EntityAttributes.MAX_HEALTH)
 															.setBaseValue(newMaxHealth);
 													target.setHealth((float) newMaxHealth); // Set player's health to
 																							// the new max health
@@ -583,10 +581,10 @@ public class LifestealMod implements ModInitializer {
 			return 0;
 		}
 
-		double currentMaxHealth = target.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+		double currentMaxHealth = target.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 		double newMaxHealth = Math.max(2.0, currentMaxHealth + 8.0); // 20 hearts = 40 health
 
-		target.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(newMaxHealth);
+		target.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(newMaxHealth);
 		target.setHealth((float) newMaxHealth); // Set player's health to the new max health
 
 		// changing the player's gamemode to survival
@@ -607,10 +605,10 @@ public class LifestealMod implements ModInitializer {
 			return 0;
 		}
 
-		double currentMaxHealth = target.getAttributeBaseValue(EntityAttributes.GENERIC_MAX_HEALTH);
+		double currentMaxHealth = target.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
 		double newMaxHealth = Math.max(2.0, currentMaxHealth + 8.0); // 20 hearts = 40 health
 
-		target.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(newMaxHealth);
+		target.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(newMaxHealth);
 		target.setHealth((float) newMaxHealth); // Set player's health to the new max health
 
 		// changing the player's gamemode to survival
@@ -636,17 +634,17 @@ public class LifestealMod implements ModInitializer {
 	public void openRecipeGUI(ServerPlayerEntity player) {
 		if (player instanceof ServerPlayerEntity) {
 			ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
-	
+
 			// Create a 45-slot chest inventory
 			SimpleInventory inventory = new SimpleInventory(45);
-	
+
 			// Define items for Recipe 1 and Recipe 2
 			ItemStack rawGoldBlock = new ItemStack(Items.RAW_GOLD_BLOCK);
 			rawGoldBlock.set(DataComponentTypes.ITEM_NAME, Text.literal("Raw Gold Block"));
-	
+
 			ItemStack netheriteIngot = new ItemStack(Items.NETHERITE_INGOT);
 			netheriteIngot.set(DataComponentTypes.ITEM_NAME, Text.literal("Netherite Ingot"));
-	
+
 			ItemStack netherStar = new ItemStack(Items.NETHER_STAR);
 			netherStar.set(DataComponentTypes.ITEM_NAME, Text.literal("Nether Star"));
 
@@ -654,31 +652,31 @@ public class LifestealMod implements ModInitializer {
 			beacon.set(DataComponentTypes.ITEM_NAME, Text.literal("Beacon"));
 
 			ItemStack reviveBeacon = createReviveBeacon("Revive Beacon");
-	
+
 			// Custom item for the result of each recipe
 			ItemStack heart = createCustomNetherStar("Heart");
-	
+
 			// Recipe 1 pattern
 			String[] recipePattern1 = new String[]{"RNR", "NGN", "RNR"};
-	
+
 			// Recipe 2 pattern
 			String[] recipePattern2 = new String[]{"NGN", "GBG", "NGN"};
-	
+
 			// Define the starting row and column for Recipe 1 (left side)
 			int startRow1 = 1;
 			int startCol1 = 0;
-	
+
 			// Define the starting row and column for Recipe 2 (right side)
 			int startRow2 = 1;
 			int startCol2 = 5;
-	
+
 			// Place Recipe 1 items in the left 3x3 grid
 			for (int i = 0; i < recipePattern1.length; i++) {
 				String row = recipePattern1[i];
 				for (int j = 0; j < row.length(); j++) {
 					char c = row.charAt(j);
 					ItemStack itemStack = ItemStack.EMPTY;
-	
+
 					// Assign items for Recipe 1
 					switch (c) {
 						case 'R':
@@ -691,20 +689,20 @@ public class LifestealMod implements ModInitializer {
 							itemStack = netherStar;
 							break;
 					}
-	
+
 					// Calculate the correct slot for Recipe 1 items
 					int slotIndex = (startRow1 + i) * 9 + (startCol1 + j);
 					inventory.setStack(slotIndex, itemStack);
 				}
 			}
-	
+
 			// Place Recipe 2 items in the right 3x3 grid
 			for (int i = 0; i < recipePattern2.length; i++) {
 				String row = recipePattern2[i];
 				for (int j = 0; j < row.length(); j++) {
 					char c = row.charAt(j);
 					ItemStack itemStack = ItemStack.EMPTY;
-	
+
 					// Assign items for Recipe 2
 					switch (c) {
 						case 'B':
@@ -717,21 +715,21 @@ public class LifestealMod implements ModInitializer {
 							itemStack = netherStar;
 							break;
 					}
-	
+
 					// Calculate the correct slot for Recipe 2 items
 					int slotIndex = (startRow2 + i) * 9 + (startCol2 + j);
 					inventory.setStack(slotIndex, itemStack);
 				}
 			}
-	
+
 			// Place the result of Recipe 1 (Heart) at a separate slot
 			int resultSlot1 = (startRow1 + 1) * 9 + (startCol1 + 3); // Row 2, Column 4
 			inventory.setStack(resultSlot1, heart);
-	
+
 			// Place the result of Recipe 2 (Super Heart) at a separate slot
 			int resultSlot2 = (startRow2 + 1) * 9 + (startCol2 + 3); // Row 2, Column 8
 			inventory.setStack(resultSlot2, reviveBeacon);
-	
+
 			// Fill the remaining slots with gray glass panes to indicate empty spaces
 			for (int i = 0; i < inventory.size(); i++) {
 				if (inventory.getStack(i).isEmpty()) {
@@ -740,7 +738,7 @@ public class LifestealMod implements ModInitializer {
 					inventory.setStack(i, glassPane);
 				}
 			}
-	
+
 			// Open the chest GUI for the player
 			serverPlayer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
 					(syncId, playerInventory, playerEntity) -> new RecipeScreenHandler(syncId, playerInventory, inventory),
