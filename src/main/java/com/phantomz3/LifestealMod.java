@@ -186,6 +186,42 @@ public class LifestealMod implements ModInitializer {
 				}
 				return ActionResult.PASS; // Allow other items to proceed
 			});
+
+			// Handle custom Heart item usage
+			UseItemCallback.EVENT.register((player, world, hand) -> {
+				ItemStack itemStack = player.getStackInHand(hand);
+
+				// Check if the item is a Nether Star named "Heart"
+				if (itemStack.getItem() == Items.NETHER_STAR 
+					&& itemStack.contains(DataComponentTypes.ITEM_NAME)
+					&& itemStack.get(DataComponentTypes.ITEM_NAME).getString().equals("Heart")) {
+
+					ModConfig modConfig = AutoConfig.getConfigHolder(ModConfig.class).getConfig();
+					double currentMaxHealth = player.getAttributeBaseValue(EntityAttributes.MAX_HEALTH);
+
+					// Check if player is already at max heart cap
+					if (currentMaxHealth < modConfig.maxHeartCap) {
+						// Increase max health by 1 heart (2.0f)
+						double newMaxHealth = currentMaxHealth + 2.0;
+						player.getAttributeInstance(EntityAttributes.MAX_HEALTH).setBaseValue(newMaxHealth);
+
+						// Heal player by 1 heart (2.0f)
+						player.heal(2.0f);
+
+						// Consume the item if not in creative mode
+						if (!player.getAbilities().creativeMode) {
+							itemStack.decrement(1);
+						}
+
+						player.sendMessage(Text.literal("You consumed a heart!").formatted(Formatting.GREEN), true);
+						return ActionResult.SUCCESS;
+					} else {
+						player.sendMessage(Text.literal("You have reached the maximum heart limit!").formatted(Formatting.RED), true);
+						return ActionResult.FAIL;
+					}
+				}
+				return ActionResult.PASS; // Pass for other items
+			});
 		}
 
 		if (config.disableNetherite) {
